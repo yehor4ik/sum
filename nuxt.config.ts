@@ -1,10 +1,20 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
-  compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
+
+  modules: [
+    '@pinia/nuxt',
+  ],
+
   runtimeConfig: {
     public: {
-      bankAuthToken: process.env.NUXT_PUBLIC_BANK_AUTH_TOKEN ?? '',
-    }
-  }
+      bankAuthToken: process.env.BANK_AUTH_TOKEN || '',
+    },
+  },
+
+  typescript: {
+    strict: true,
+  },
+
+  compatibilityDate: '2025-04-11',
 })

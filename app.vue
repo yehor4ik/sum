@@ -5,7 +5,7 @@
         <select v-model="selectedAccountId">
           <option value="">Оберіть рахунок</option>
           <option v-for="account in accounts" :key="account.id" :value="account.id">
-            {{ account.type }} - {{ account.maskedPan[0] ?? '' }}
+            {{ account.type }} - {{ (account?.maskedPan ?? [])[0] ?? '' }}
           </option>
         </select>
       </div>
@@ -44,16 +44,18 @@
 </template>
 
 <script setup lang="ts">
-import { monobankApiService } from "./services/api/MonobankApiService/MonobankApiService";
-import type { ClientInfo } from "~/services/api/MonobankApiService/types/ClientInfo";
-import type { Statement } from "~/services/api/MonobankApiService/types/Statement";
+import { useMonobank } from '~/composables/useMonobank'
+import { useAuthStore } from '~/stores/auth'
+import type { ClientInfo, Statement } from '~/types/monobank'
+
+const { client } = useMonobank()
+const authStore = useAuthStore()
 
 const accounts = ref<ClientInfo['accounts']>([]);
 const selectedAccountId = ref<string>('');
 const transactions = ref<Statement[]>([]);
-const config = useRuntimeConfig();
 
-const fromDate = ref(new Date(2024, 0, 1));
+const fromDate = ref(new Date(2025, 3, 1));
 const toDate = ref(new Date());
 
 const isFormValid = computed(() => {
@@ -78,11 +80,8 @@ const fetchTransactions = async () => {
   }
 
   try {
-    transactions.value = await monobankApiService.getStatement({
-      accountId: selectedAccountId.value,
-      fromDate: fromDate.value,
-      toDate: toDate.value
-    });
+    console.log('fromDate', fromDate.value, 'toDate', toDate.value)
+    transactions.value = await client.value.getStatement(selectedAccountId.value, fromDate.value, toDate.value);
   } catch (error) {
     console.error('Error fetching transactions:', error);
     transactions.value = [];
@@ -91,12 +90,19 @@ const fetchTransactions = async () => {
 
 onMounted(async () => {
   try {
-    const clientInfo = await monobankApiService.getClientInfo();
+    const clientInfo = await client.value.getClientInfo();
     accounts.value = clientInfo.accounts;
   } catch (error) {
     console.error('Error fetching client info:', error);
   }
 });
+
+// Fetch cards when authenticated
+watch(() => authStore.isAuthenticated, async (isAuth: boolean) => {
+  if (isAuth) {
+    await fetchTransactions()
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>
